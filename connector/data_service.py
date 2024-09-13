@@ -47,7 +47,8 @@ def extract_addresses():
         
         for address_index, item in enumerate(batch):
             valid_values = [value for key, value in item.items() if key in source_columns_list and value]
-            concatenated_address: str = f"{data_item_prefix}_{address_index}: " + ', '.join(valid_values)
+            concatenated_address: str = ', '.join(valid_values)
+            concatenated_address = f"{data_item_prefix}_{address_index}: {concatenated_address}"
             addresses_to_process.append(concatenated_address)
             
         container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
