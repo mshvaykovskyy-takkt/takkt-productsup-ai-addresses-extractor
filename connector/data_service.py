@@ -39,23 +39,17 @@ def extract_addresses():
         )
         sys.exit(1)
 
-    container_api.log(LogLevel.DEBUG, f"System prompt: {system_prompt}")
-    container_api.log(LogLevel.DEBUG, f"User prompt prefix: {user_prompt_prefix}")
-    container_api.log(LogLevel.DEBUG, f"Data separator: {data_separator}")
-    container_api.log(LogLevel.DEBUG, f"Data item prefix: {data_item_prefix}")
-    container_api.log(LogLevel.DEBUG, f"New column prefix: {new_column_prefix}")
-
     source_columns_list: list = [field.strip() for field in source_columns.split(",")]
     container_api.log(LogLevel.INFO, f"Extract from columns {source_columns_list}")
 
     for batch in container_api.yield_from_file_batch(InputFile.FULL, 50):
-        container_api.log(LogLevel.DEBUG, json.dumps(batch))
+        addresses_to_process: list = []
+        for index, product in enumerate(batch):
+            valid_values = [value for key, value in product.items() if key in source_columns_list and value]
+            concatenated_address: str = f"{data_item_prefix}_{index}:" + ', '.join(valid_values)
+            addresses_to_process.append(concatenated_address)
 
-        container_api.log(LogLevel.DEBUG, f"Batch type: {type(batch)}")
-
-        for id, product in enumerate(batch):
             # product[new_column] = product[source_column]
-            container_api.log(LogLevel.DEBUG, id)
-            container_api.log(LogLevel.DEBUG, json.dumps(product))
+            container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
