@@ -42,14 +42,14 @@ def extract_addresses():
     source_columns_list: list = [field.strip() for field in source_columns.split(",")]
     container_api.log(LogLevel.INFO, f"Extract from columns {source_columns_list}")
 
-    for batch in container_api.yield_from_file_batch(InputFile.FULL, 50):
+    for index, batch in enumerate(container_api.yield_from_file_batch(InputFile.FULL, 50)):
         addresses_to_process: list = []
-        for index, product in enumerate(batch):
-            valid_values = [value for key, value in product.items() if key in source_columns_list and value]
-            concatenated_address: str = f"{data_item_prefix}_{index}:" + ', '.join(valid_values)
-            addresses_to_process.append(concatenated_address)
+        
+        valid_values = [value for key, value in batch.items() if key in source_columns_list and value]
+        concatenated_address: str = f"{data_item_prefix}_{index}: " + ', '.join(valid_values)
+        addresses_to_process.append(concatenated_address)
+        container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
 
-            # product[new_column] = product[source_column]
-            container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
-
+        # product[new_column] = product[source_column]
+        
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
