@@ -1,0 +1,9 @@
+services:
+  connector:
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/usr/src/app'
+    stdin_open: true
+    tty: true
+    working_dir: /usr/src/app
