@@ -50,7 +50,7 @@ def extract_addresses():
             concatenated_address: str = f"{data_item_prefix}_{address_index}: " + ', '.join(valid_values)
             addresses_to_process.append(concatenated_address)
             
-            container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
+        container_api.log(LogLevel.DEBUG, json.dumps(addresses_to_process))
 
         # product[new_column] = product[source_column]
         
