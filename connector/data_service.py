@@ -51,9 +51,9 @@ def extract_addresses():
     for batch in container_api.yield_from_file_batch(InputFile.FULL, 50):
         container_api.log(LogLevel.DEBUG, json.dumps(batch))
 
-        for key, product in batch:
+        for product in batch:
             # product[new_column] = product[source_column]
-            container_api.log(LogLevel.DEBUG, key)
+            # container_api.log(LogLevel.DEBUG, key)
             container_api.log(LogLevel.DEBUG, json.dumps(product))
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
