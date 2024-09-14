@@ -1,6 +1,5 @@
 import sys
 import os
-import json
 
 from .container_api import (
     ContainerApi,
