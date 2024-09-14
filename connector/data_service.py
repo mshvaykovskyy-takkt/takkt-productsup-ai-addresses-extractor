@@ -1,6 +1,5 @@
 import sys
 import os
-import json
 
 from .container_api import (
     ContainerApi,
@@ -8,6 +7,7 @@ from .container_api import (
     LogLevel,
     InputFile,
 )
+from .container_utils import AzureOpenAIApi, ApiResponse
 
 container_api = ContainerApi()
 
@@ -41,18 +41,46 @@ def extract_addresses():
 
     source_columns_list: list = [field.strip() for field in source_columns.split(",")]
 
+    azure_openai_api: AzureOpenAIApi = AzureOpenAIApi(
+        model=ai_model,
+        endpoint=azure_openai_endpoint,
+        api_key=azure_openai_key,
+        api_version=azure_openai_api_version,
+    )
+
     for batch in container_api.yield_from_file_batch(InputFile.FULL, 50):
         addresses_to_process: list = []
-        
+
         for address_index, item in enumerate(batch):
-            valid_values = [value for key, value in item.items() if key in source_columns_list and value]
-            concatenated_address: str = ', '.join(valid_values)
-            concatenated_address = f"{data_item_prefix}_{address_index}: {concatenated_address}"
+            valid_values = [
+                value
+                for key, value in item.items()
+                if key in source_columns_list and value
+            ]
+            concatenated_address: str = ", ".join(valid_values)
+            concatenated_address = (
+                f"{data_item_prefix}_{address_index}: {concatenated_address}"
+            )
             addresses_to_process.append(concatenated_address)
-        
-        user_prompt: str = user_prompt_prefix + data_separator.join(addresses_to_process)
+
+        user_prompt: str = (
+            f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
+        )
         container_api.log(LogLevel.DEBUG, user_prompt)
 
+        result: ApiResponse = azure_openai_api.make_api_call(system_prompt, user_prompt)
+
+        if not result.success:
+            container_api.log(
+                LogLevel.ERROR, "Error while making API call: " + result.error
+            )
+            sys.exit(1)
+
+        container_api.log(
+            LogLevel.SUCCESS, "OpenAI API call successful. Used: " + str(result.usage)
+        )
+        container_api.log(LogLevel.DEBUG, result.data)
+
         # product[new_column] = product[source_column]
-        
+
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
