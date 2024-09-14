@@ -49,7 +49,7 @@ def extract_addresses():
         api_version=azure_openai_api_version,
     )
 
-    for batch in container_api.yield_from_file_batch(InputFile.FULL, 20):
+    for batch in container_api.yield_from_file_batch(InputFile.FULL):
         addresses_to_process: list = [
             f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
             for address_index, item in enumerate(batch)
