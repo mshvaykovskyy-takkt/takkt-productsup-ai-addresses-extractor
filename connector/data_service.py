@@ -49,37 +49,29 @@ def extract_addresses():
         api_version=azure_openai_api_version,
     )
 
-    for batch in container_api.yield_from_file_batch(InputFile.FULL, 50):
-        addresses_to_process: list = []
-
-        for address_index, item in enumerate(batch):
-            valid_values = [
-                value
-                for key, value in item.items()
-                if key in source_columns_list and value
-            ]
-            concatenated_address: str = ", ".join(valid_values)
-            concatenated_address = (
-                f"{data_item_prefix}_{address_index}: {concatenated_address}"
-            )
-            addresses_to_process.append(concatenated_address)
-
+    for batch in container_api.yield_from_file_batch(InputFile.FULL, 20):
+        addresses_to_process: list = [
+            f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
+            for address_index, item in enumerate(batch)
+        ]
         user_prompt: str = (
             f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
         )
+        container_api.log(LogLevel.DEBUG, f"User prompt: {user_prompt}")
 
         result: ApiResponse = azure_openai_api.make_api_call(system_prompt, user_prompt)
 
         if not result.success:
             container_api.log(
-                LogLevel.ERROR, "Error while making API call: " + result.error
+                LogLevel.ERROR, f"Error while making API call: {result.error}"
             )
             sys.exit(1)
 
         container_api.log(
-            LogLevel.SUCCESS, "OpenAI API call successful. Used: " + str(result.usage.total_tokens)
+            LogLevel.SUCCESS,
+            f"OpenAI API call successful. Used: {result.usage.total_tokens} tokens",
         )
-        container_api.log(LogLevel.DEBUG, "API response: " + json.dumps(result.data))
+        container_api.log(LogLevel.DEBUG, f"API response: {json.dumps(result.data)}")
 
         # product[new_column] = product[source_column]
 
