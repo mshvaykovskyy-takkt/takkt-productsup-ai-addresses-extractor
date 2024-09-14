@@ -57,7 +57,6 @@ def extract_addresses():
         user_prompt: str = (
             f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
         )
-        container_api.log(LogLevel.DEBUG, f"User prompt: {user_prompt}")
 
         result: ApiResponse = azure_openai_api.make_api_call(system_prompt, user_prompt)
 
@@ -71,8 +70,11 @@ def extract_addresses():
             LogLevel.SUCCESS,
             f"OpenAI API call successful. Used: {result.usage.total_tokens} tokens",
         )
-        container_api.log(LogLevel.DEBUG, f"API response: {json.dumps(result.data)}")
 
-        # product[new_column] = product[source_column]
+        for id, product in enumerate(batch):
+            extracted_fields: dict = result.data[f"{data_item_prefix}_{id}"]
+            for key, value in extracted_fields.items():
+                product[f"{new_column_prefix}_{key}"] = value
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
+        container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")
