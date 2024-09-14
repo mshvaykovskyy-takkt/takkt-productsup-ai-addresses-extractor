@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 from .container_api import (
     ContainerApi,
@@ -66,7 +67,6 @@ def extract_addresses():
         user_prompt: str = (
             f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
         )
-        container_api.log(LogLevel.DEBUG, user_prompt)
 
         result: ApiResponse = azure_openai_api.make_api_call(system_prompt, user_prompt)
 
@@ -77,9 +77,9 @@ def extract_addresses():
             sys.exit(1)
 
         container_api.log(
-            LogLevel.SUCCESS, "OpenAI API call successful. Used: " + str(result.usage)
+            LogLevel.SUCCESS, "OpenAI API call successful. Used: " + str(result.usage.total_tokens)
         )
-        container_api.log(LogLevel.DEBUG, result.data)
+        container_api.log(LogLevel.DEBUG, "API response: " + json.dumps(result.data))
 
         # product[new_column] = product[source_column]
 
