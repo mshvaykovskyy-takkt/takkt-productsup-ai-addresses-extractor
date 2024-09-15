@@ -19,7 +19,7 @@ def extract_addresses():
     azure_openai_endpoint: str = os.environ.get("AZURE_OPENAI_ENDPOINT")
     azure_openai_key: str = os.environ.get("AZURE_OPENAI_API_KEY")
     azure_openai_api_version: str = os.environ.get("AZURE_OPENAI_API_VERSION")
-    azure_batch_size: int = os.environ.get("AZURE_BATCH_SIZE")
+    azure_batch_size: int = int(os.environ.get("AZURE_BATCH_SIZE"))
 
     system_prompt: str = os.environ.get("SYSTEM_PROMPT")
     user_prompt_prefix: str = os.environ.get("USER_PROMPT_PREFIX")
