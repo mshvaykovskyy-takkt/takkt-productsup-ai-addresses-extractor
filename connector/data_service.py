@@ -87,7 +87,7 @@ def extract_addresses():
 
         container_api.log(
             LogLevel.INFO,
-            f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost_per_batch} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost}) for completion tokens.",
+            f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost_per_batch} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost} USD) for completion tokens.",
         )
 
         for i, product in enumerate(batch):
