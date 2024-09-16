@@ -75,10 +75,10 @@ def extract_addresses():
         prompt_tokens: int = result.usage.prompt_tokens
         completion_tokens: int = result.usage.completion_tokens
         prompt_tokens_cost: float = round(
-            prompt_tokens / 1000000 * azure_input_tokens_cost, 2
+            prompt_tokens / 1000000 * azure_input_tokens_cost, 6
         )
         completion_tokens_cost: float = round(
-            completion_tokens / 1000000 * azure_output_tokens_cost, 2
+            completion_tokens / 1000000 * azure_output_tokens_cost, 6
         )
         total_tokens_cost: float = prompt_tokens_cost + completion_tokens_cost
 
