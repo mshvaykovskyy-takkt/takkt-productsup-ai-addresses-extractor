@@ -55,6 +55,8 @@ def extract_addresses():
         api_version=azure_openai_api_version,
     )
 
+    total_tokens_cost: float = 0
+
     for batch in container_api.yield_from_file_batch(InputFile.FULL, batch_size):
         addresses_to_process: list = [
             f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
@@ -80,11 +82,12 @@ def extract_addresses():
         completion_tokens_cost: float = round(
             completion_tokens / 1000000 * azure_output_tokens_cost, 6
         )
-        total_tokens_cost: float = prompt_tokens_cost + completion_tokens_cost
+        total_tokens_cost_per_batch: float = prompt_tokens_cost + completion_tokens_cost
+        total_tokens_cost += total_tokens_cost_per_batch
 
         container_api.log(
             LogLevel.INFO,
-            f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost}) for completion tokens.",
+            f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost_per_batch} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost}) for completion tokens.",
         )
 
         for i, product in enumerate(batch):
@@ -97,3 +100,5 @@ def extract_addresses():
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
         container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")
+
+    container_api.log(LogLevel.INFO, f"Total cost for processing: {total_tokens_cost} USD")
