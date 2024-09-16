@@ -101,4 +101,4 @@ def extract_addresses():
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
         container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")
 
-    container_api.log(LogLevel.INFO, f"Total cost for processing: {total_tokens_cost} USD")
+    container_api.log(LogLevel.INFO, f"Total cost for processing: {round(total_tokens_cost, 6)} USD")
