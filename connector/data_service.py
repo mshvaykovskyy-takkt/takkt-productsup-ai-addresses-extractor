@@ -19,7 +19,6 @@ def extract_addresses():
     azure_openai_endpoint: str = os.environ.get("AZURE_OPENAI_ENDPOINT")
     azure_openai_key: str = os.environ.get("AZURE_OPENAI_API_KEY")
     azure_openai_api_version: str = os.environ.get("AZURE_OPENAI_API_VERSION")
-    azure_batch_size: int = int(os.environ.get("AZURE_BATCH_SIZE"))
 
     system_prompt: str = os.environ.get("SYSTEM_PROMPT")
     user_prompt_prefix: str = os.environ.get("USER_PROMPT_PREFIX")
@@ -27,6 +26,8 @@ def extract_addresses():
     data_separator: str = os.environ.get("DATA_SEPARATOR")
     data_item_prefix: str = os.environ.get("DATA_ITEM_PREFIX")
     new_column_prefix: str = os.environ.get("NEW_COLUMN_PREFIX")
+
+    batch_size: int = int(os.environ.get("BATCH_SIZE"))
 
     if (
         not source_columns
@@ -50,41 +51,37 @@ def extract_addresses():
         api_version=azure_openai_api_version,
     )
 
-    for batch in container_api.yield_from_file_batch(InputFile.FULL):
-        for azure_batch in [
-            batch[i : i + azure_batch_size]
-            for i in range(0, len(batch), azure_batch_size)
-        ]:
-            addresses_to_process: list = [
-                f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
-                for address_index, item in enumerate(azure_batch)
-            ]
-            user_prompt: str = (
-                f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
-            )
+    for batch in container_api.yield_from_file_batch(InputFile.FULL, batch_size):
+        addresses_to_process: list = [
+            f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
+            for address_index, item in enumerate(batch)
+        ]
+        user_prompt: str = (
+            f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
+        )
 
-            result: ApiResponse = azure_openai_api.make_api_call(
-                system_prompt, user_prompt
-            )
+        result: ApiResponse = azure_openai_api.make_api_call(
+            system_prompt, user_prompt
+        )
 
-            if not result.success:
-                container_api.log(
-                    LogLevel.ERROR, f"Error while making API call: {result.error}"
-                )
-                sys.exit(1)
-
+        if not result.success:
             container_api.log(
-                LogLevel.INFO,
-                f"OpenAI API call successful. Used {result.usage.total_tokens} tokens: {result.usage.prompt_tokens} for prompt tokens and {result.usage.completion_tokens} for completion tokens",
+                LogLevel.ERROR, f"Error while making API call: {result.error}"
             )
+            sys.exit(1)
 
-            for i, product in enumerate(azure_batch):
-                product.update(
-                    {
-                        f"{new_column_prefix}_{key}": value
-                        for key, value in result.data[f"{data_item_prefix}_{i}"].items()
-                    }
-                )
+        container_api.log(
+            LogLevel.INFO,
+            f"OpenAI API call successful. Used {result.usage.total_tokens} tokens: {result.usage.prompt_tokens} for prompt tokens and {result.usage.completion_tokens} for completion tokens",
+        )
+
+        for i, product in enumerate(batch):
+            product.update(
+                {
+                    f"{new_column_prefix}_{key}": value
+                    for key, value in result.data[f"{data_item_prefix}_{i}"].items()
+                }
+            )
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
         container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")

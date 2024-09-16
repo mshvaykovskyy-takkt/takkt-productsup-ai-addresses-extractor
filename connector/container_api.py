@@ -107,7 +107,13 @@ class ContainerApi:
         return [response_item.to_dict() for response_item in response.data]
 
     def yield_from_file_batch(self, file: InputFile, batch_size: int = 100):
-        yield self.read_from_file_batch(file, batch_size)
+        while True:
+            products = self.read_from_file_batch(file, batch_size)
+
+            if products is None:
+                break
+
+            yield products
 
     def log(self, level: str, message: str, context: typing.Optional[dict] = None):
         body = WriteLogInput()
