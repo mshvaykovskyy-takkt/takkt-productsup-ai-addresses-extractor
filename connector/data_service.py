@@ -19,15 +19,19 @@ def extract_addresses():
     azure_openai_endpoint: str = os.environ.get("AZURE_OPENAI_ENDPOINT")
     azure_openai_key: str = os.environ.get("AZURE_OPENAI_API_KEY")
     azure_openai_api_version: str = os.environ.get("AZURE_OPENAI_API_VERSION")
+    azure_input_tokens_cost: float = float(os.environ.get("AZURE_INPUT_TOKENS_COST", 0))
+    azure_output_tokens_cost: float = float(
+        os.environ.get("AZURE_OUTPUT_TOKENS_COST", 0)
+    )
 
     system_prompt: str = os.environ.get("SYSTEM_PROMPT")
     user_prompt_prefix: str = os.environ.get("USER_PROMPT_PREFIX")
 
-    data_separator: str = os.environ.get("DATA_SEPARATOR")
-    data_item_prefix: str = os.environ.get("DATA_ITEM_PREFIX")
-    new_column_prefix: str = os.environ.get("NEW_COLUMN_PREFIX")
+    data_separator: str = os.environ.get("DATA_SEPARATOR", ";;;")
+    data_item_prefix: str = os.environ.get("DATA_ITEM_PREFIX", "data")
+    new_column_prefix: str = os.environ.get("NEW_COLUMN_PREFIX", "extracted")
 
-    batch_size: int = int(os.environ.get("BATCH_SIZE"))
+    batch_size: int = int(os.environ.get("BATCH_SIZE", 50))
 
     if (
         not source_columns
@@ -60,9 +64,7 @@ def extract_addresses():
             f"{user_prompt_prefix} {data_separator.join(addresses_to_process)}"
         )
 
-        result: ApiResponse = azure_openai_api.make_api_call(
-            system_prompt, user_prompt
-        )
+        result: ApiResponse = azure_openai_api.make_api_call(system_prompt, user_prompt)
 
         if not result.success:
             container_api.log(
@@ -70,9 +72,19 @@ def extract_addresses():
             )
             sys.exit(1)
 
+        prompt_tokens: int = result.usage.prompt_tokens
+        completion_tokens: int = result.usage.completion_tokens
+        prompt_tokens_cost: float = round(
+            prompt_tokens / 1000000 * azure_input_tokens_cost, 2
+        )
+        completion_tokens_cost: float = round(
+            completion_tokens / 1000000 * azure_output_tokens_cost, 2
+        )
+        total_tokens_cost: float = prompt_tokens_cost + completion_tokens_cost
+
         container_api.log(
             LogLevel.INFO,
-            f"OpenAI API call successful. Used {result.usage.total_tokens} tokens: {result.usage.prompt_tokens} for prompt tokens and {result.usage.completion_tokens} for completion tokens",
+            f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost}) for completion tokens.",
         )
 
         for i, product in enumerate(batch):
