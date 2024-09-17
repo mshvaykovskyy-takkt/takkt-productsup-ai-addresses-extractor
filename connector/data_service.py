@@ -60,7 +60,7 @@ def extract_addresses():
 
     for batch in container_api.yield_from_file_batch(InputFile.FULL, batch_size):
         addresses_to_process: list = [
-            f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key in source_columns_list and value])}"
+            f"{data_item_prefix}_{address_index}: {', '.join([value for key, value in item.items() if key.lower() in source_columns_list and value])}"
             for address_index, item in enumerate(batch)
         ]
         user_prompt: str = (
@@ -112,7 +112,7 @@ def extract_addresses():
                         f"Error while processing item {i}: {result.data[item_prefix]}"
                     )
 
-                container_api.log(LogLevel.ERROR, error_message)
+                container_api.log(LogLevel.DEBUG, error_message)
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
         container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")
