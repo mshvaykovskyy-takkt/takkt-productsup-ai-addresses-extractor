@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 from .container_api import (
     ContainerApi,
@@ -90,13 +91,28 @@ def extract_addresses():
             f"OpenAI API call successful. Used {result.usage.total_tokens} ({total_tokens_cost_per_batch} USD) tokens: {prompt_tokens} ({prompt_tokens_cost} USD) for prompt tokens and {completion_tokens} ({completion_tokens_cost} USD) for completion tokens.",
         )
 
-        for i, product in enumerate(batch):
-            product.update(
-                {
-                    f"{new_column_prefix}_{key}": value
-                    for key, value in result.data[f"{data_item_prefix}_{i}"].items()
-                }
-            )
+        for i, address in enumerate(batch):
+            item_prefix: str = f"{data_item_prefix}_{i}"
+            if (
+                result.data[item_prefix] is not None
+                and result.data[item_prefix].items()
+            ):
+                address.update(
+                    {
+                        f"{new_column_prefix}_{key}": value
+                        for key, value in result.data[item_prefix].items()
+                    }
+                )
+            else:
+                error_message: str = (
+                    f"Error while processing item {i}: None. Address: {json.dumps(address)}\n"
+                )
+                if result.data[item_prefix] is not None:
+                    error_message = (
+                        f"Error while processing item {i}: {result.data[item_prefix]}"
+                    )
+
+                container_api.log(LogLevel.ERROR, error_message)
 
         container_api.append_many_to_file(OutputFile.OUTPUT, batch)
         container_api.log(LogLevel.SUCCESS, f"{len(batch)} items processed.")
